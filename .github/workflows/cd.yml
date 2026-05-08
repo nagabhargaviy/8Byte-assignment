@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/backend
+  IMAGE_NAME: ghcr.io/nagabhargaviy/8byte-assignment/backend
 
 jobs:
   build-and-push:
@@ -15,9 +15,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout code
@@ -30,27 +27,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=sha-
-            type=raw,value=latest
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Scan pushed image for vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          image-ref: ${{ env.IMAGE_NAME }}:latest
           severity: 'HIGH,CRITICAL'
           exit-code: '0'
 
@@ -67,7 +57,7 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull ghcr.io/${{ github.repository }}/backend:latest
+            docker pull ${{ env.IMAGE_NAME }}:latest
             docker stop app || true
             docker rm app || true
             docker run -d \
@@ -80,16 +70,14 @@ jobs:
               -e SECRET_KEY=${{ secrets.APP_SECRET_KEY }} \
               -e FIRST_SUPERUSER=${{ secrets.FIRST_SUPERUSER }} \
               -e FIRST_SUPERUSER_PASSWORD=${{ secrets.FIRST_SUPERUSER_PASSWORD }} \
-              ghcr.io/${{ github.repository }}/backend:latest
+              ${{ env.IMAGE_NAME }}:latest
 
       - name: Notify on staging failure
         if: failure()
         uses: slackapi/slack-github-action@v1
         with:
           payload: |
-            {
-              "text": "Staging deploy failed for ${{ github.repository }} — commit ${{ github.sha }}"
-            }
+            {"text": "Staging deploy failed for ${{ github.repository }}"}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
@@ -98,9 +86,7 @@ jobs:
         uses: slackapi/slack-github-action@v1
         with:
           payload: |
-            {
-              "text": "Staging deploy successful! Awaiting manual approval for production."
-            }
+            {"text": "Staging deploy successful! Awaiting manual approval for production."}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
@@ -109,7 +95,7 @@ jobs:
     needs: deploy-staging
     runs-on: ubuntu-latest
     environment:
-      name: production        # ← Manual approval gate in GitHub
+      name: production
 
     steps:
       - name: Deploy to EC2 production
@@ -119,7 +105,7 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull ghcr.io/${{ github.repository }}/backend:latest
+            docker pull ${{ env.IMAGE_NAME }}:latest
             docker stop app || true
             docker rm app || true
             docker run -d \
@@ -132,16 +118,14 @@ jobs:
               -e SECRET_KEY=${{ secrets.APP_SECRET_KEY }} \
               -e FIRST_SUPERUSER=${{ secrets.FIRST_SUPERUSER }} \
               -e FIRST_SUPERUSER_PASSWORD=${{ secrets.FIRST_SUPERUSER_PASSWORD }} \
-              ghcr.io/${{ github.repository }}/backend:latest
+              ${{ env.IMAGE_NAME }}:latest
 
       - name: Notify production success
         if: success()
         uses: slackapi/slack-github-action@v1
         with:
           payload: |
-            {
-              "text": "🚀 Production deploy successful! Commit: ${{ github.sha }}"
-            }
+            {"text": "Production deploy successful! Commit: ${{ github.sha }}"}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
@@ -150,8 +134,6 @@ jobs:
         uses: slackapi/slack-github-action@v1
         with:
           payload: |
-            {
-              "text": "PRODUCTION deploy FAILED! Commit: ${{ github.sha }} — immediate attention needed!"
-            }
+            {"text": "PRODUCTION deploy FAILED! Commit: ${{ github.sha }}"}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
