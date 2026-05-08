@@ -140,7 +140,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "Production deploy successful! Commit: ${{ github.sha }}"
+              "text": "🚀 Production deploy successful! Commit: ${{ github.sha }}"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
