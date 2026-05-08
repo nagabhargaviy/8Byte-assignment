@@ -72,24 +72,6 @@ jobs:
               -e FIRST_SUPERUSER_PASSWORD=${{ secrets.FIRST_SUPERUSER_PASSWORD }} \
               ${{ env.IMAGE_NAME }}:latest
 
-      - name: Notify on staging failure
-        if: failure()
-        uses: slackapi/slack-github-action@v1
-        with:
-          payload: |
-            {"text": "Staging deploy failed for ${{ github.repository }}"}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-      - name: Notify staging success
-        if: success()
-        uses: slackapi/slack-github-action@v1
-        with:
-          payload: |
-            {"text": "Staging deploy successful! Awaiting manual approval for production."}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
   deploy-production:
     name: Deploy to Production
     needs: deploy-staging
@@ -119,21 +101,3 @@ jobs:
               -e FIRST_SUPERUSER=${{ secrets.FIRST_SUPERUSER }} \
               -e FIRST_SUPERUSER_PASSWORD=${{ secrets.FIRST_SUPERUSER_PASSWORD }} \
               ${{ env.IMAGE_NAME }}:latest
-
-      - name: Notify production success
-        if: success()
-        uses: slackapi/slack-github-action@v1
-        with:
-          payload: |
-            {"text": "Production deploy successful! Commit: ${{ github.sha }}"}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-      - name: Notify production failure
-        if: failure()
-        uses: slackapi/slack-github-action@v1
-        with:
-          payload: |
-            {"text": "PRODUCTION deploy FAILED! Commit: ${{ github.sha }}"}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
