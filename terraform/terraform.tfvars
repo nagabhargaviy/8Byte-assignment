@@ -1,0 +1,5 @@
+aws_region  = "us-east-1"
+environment = "staging"
+app_name    = "devops-assignment"
+db_name     = "appdb"
+db_username = "dbadmin"

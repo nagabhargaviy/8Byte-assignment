@@ -1,0 +1,78 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Tests & Security Scan
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: dbadmin
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          pip install uv
+          uv sync
+
+      - name: Run unit tests
+        working-directory: backend
+        env:
+          POSTGRES_SERVER: localhost
+          POSTGRES_USER: dbadmin
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testdb
+          SECRET_KEY: testsecretkey123
+          FIRST_SUPERUSER: admin@test.com
+          FIRST_SUPERUSER_PASSWORD: testpassword123
+        run: |
+          uv run pytest app/tests/ -v --tb=short
+
+      - name: Scan dependencies for vulnerabilities
+        working-directory: backend
+        run: |
+          pip install pip-audit
+          pip-audit
+
+      - name: Scan Docker image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './backend'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '0'
+
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "CI Failed on PR #${{ github.event.number }} in ${{ github.repository }} by ${{ github.actor }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
