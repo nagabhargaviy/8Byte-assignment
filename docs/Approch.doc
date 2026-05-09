@@ -1,0 +1,44 @@
+Approach Documentation
+-------------------------------------
+How I Approached This Assignment
+-------------------------------------
+Step 1: Infrastructure First
+    - Provisioned all AWS resources using Terraform before writing any pipeline code.
+    - This ensures the deployment target exists before automating deployments.
+
+Step 2: Happy Path First
+    - Followed the assignment's advice — got the basic flow working end-to-end
+    - before adding security scanning, notifications, and edge cases.
+
+Step 3: Cost Consciousness
+ All tools used in the project was evaluated for cost:
+    - Free tier AWS resources only (t2.micro, db.t3.micro)
+    - Open source monitoring (Prometheus/Grafana) over paid SaaS
+    - GitHub Container Registry over ECR to avoid registry costs
+    - Single NAT Gateway over per-AZ to save ~$30/month
+
+Step 4: Security by Default
+    - Private subnets for database
+    - Security groups with least-privilege rules
+    - Container and dependency scanning on every build
+    - Secrets never in code — always in GitHub Secrets
+
+-------------------------------
+Tool Choices Explained
+-------------------------------
+
+A. Terraform over CloudFormation
+   Terraform is cloud-agnostic and industry standard. Skills transfer across clouds.
+   CloudFormation is AWS-specific and less portable.
+
+B. FastAPI over Django/Flask
+   FastAPI is modern, fast, and has built-in OpenAPI documentation.
+   The template also came with Docker, tests, and PostgreSQL already configured.
+
+C. GitHub Actions over Jenkins
+   No infrastructure to manage. Native GitHub integration.
+   Free for public repositories. YAML-based, easy to read and maintain.
+
+D. Prometheus + Grafana over CloudWatch
+   Zero cost. More flexible. Industry standard for Kubernetes and container monitoring.
+   Dashboards are portable and can be version controlled as JSON.

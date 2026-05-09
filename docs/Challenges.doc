@@ -1,0 +1,36 @@
+-------------------------------------
+Challenges & Resolutions
+-------------------------------------
+
+Challenge 1: uv.lock not found during Docker build
+             Problem: CI/CD pipeline failed with `uv.lock: not found` error.
+             Root Cause: The file was deleted during repo cleanup and not tracked by git.
+             Resolution: Force-added uv.lock and pyproject.toml back to git and set Docker
+             build context to project root instead of ./backend directory.
+
+Challenge 2: Docker image name with uppercase letters
+             Problem: ghcr.io rejected image push — `8Byte-assignment` has uppercase letters.
+             Root Cause: Container registries only accept lowercase image names.
+             Resolution: Hardcoded lowercase image name `8byte-assignment` in cd.yml.
+
+Challenge 3: Wrong compose file picked up
+             Problem:  Running `docker compose up` in monitoring/ picked up root compose.yml.
+             Root Cause:   Docker Compose searches parent directories for compose files.
+             Resolution:   Always specify file explicitly: `docker compose -f docker-compose.yml up`
+
+Challenge 4: cAdvisor no data on Mac
+             Problem: cAdvisor showed no container metrics in Grafana.
+             Root Cause: cAdvisor requires Linux kernel files not available on macOS Docker Desktop.
+             Resolution: Created a custom Prometheus dashboard with node-exporter metrics
+             which work correctly on Mac. In production on EC2 (Linux), cAdvisor works fully.
+
+Challenge 5: Branch name mismatch
+             Problem: Pipeline not triggering — repo was on `master` branch, pipelines set for `main`.
+             Root Cause: Original template used `master` as default branch.
+             Resolution: Renamed branch with `git branch -m master main` and updated GitHub default.
+
+Challenge 6: Slack webhook placeholder
+             Problem: Pipeline failing at Slack notification step with 405 error.
+             Root Cause: Placeholder URL `https://placeholder.com` used instead of real webhook.
+             Resolution: Removed Slack notification steps to keep pipeline clean.
+             In production, a real Slack webhook URL would be configured.
